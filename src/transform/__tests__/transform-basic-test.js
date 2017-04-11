@@ -9,7 +9,9 @@ const {TransformResult, transform} = require('..');
 
 const defaultRe = /a{1,}/i;
 const defaultReString = `${defaultRe}`;
-const defaultAst = parser.parse(defaultReString);
+const defaultAst = parser.parse(defaultReString, {
+  captureLocations: true,
+});
 
 describe('transform-basic', () => {
 
@@ -23,6 +25,11 @@ describe('transform-basic', () => {
             type: 'Quantifier',
             kind: '+',
             greedy: node.greedy,
+            loc: {
+              source: '+',
+              start: node.loc.start,
+              end: node.loc.start + 1,
+            },
           });
         }
       }
@@ -41,14 +48,34 @@ describe('transform-basic', () => {
           type: 'Char',
           value: 'a',
           kind: 'simple',
+          loc: {
+            source: 'a',
+            start: 1,
+            end: 2,
+          },
         },
         quantifier: {
           type: 'Quantifier',
           kind: '+',
           greedy: true,
+          loc: {
+            source: '+',
+            start: 2,
+            end: 3,
+          }
+        },
+        loc: {
+          source: 'a{1,}', // NOTE: original source might not be updated
+          start: 1,
+          end: 6,
         },
       },
       flags: 'i',
+      loc: {
+        source: '/a{1,}/i',
+        start: 0,
+        end: 8
+      }
     });
   }
 
