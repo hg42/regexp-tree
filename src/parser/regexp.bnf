@@ -129,7 +129,13 @@ let capturingGroupsCount = 0;
  */
 let namedGroups = {};
 
-yyparse.onParseBegin = () => {
+/**
+ * Parsing string.
+ */
+let parsingString = '';
+
+yyparse.onParseBegin = (string) => {
+  parsingString = string;
   capturingGroupsCount = 0;
   namedGroups = {};
 };
@@ -302,14 +308,15 @@ function NamedGroupRefOrChars(text, textLoc) {
 
 /**
  * Creates an AST node with a location.
- *
- * NOTE: The `shouldCaptureLocations` meta variable is defined by Syntax tool.
  */
 function Node(node, loc) {
-  if (shouldCaptureLocations) {
+  if (yy.options.captureLocations) {
+    const start = loc.startOffset;
+    const end = loc.endOffset;
     node.loc = {
-      start: loc.startOffset,
-      end: loc.endOffset,
+      source: parsingString.slice(start, end),
+      start,
+      end,
     };
   }
   return node;
@@ -319,7 +326,7 @@ function Node(node, loc) {
  * Creates location node.
  */
 function loc(start, end) {
-  if (!shouldCaptureLocations) {
+  if (!yy.options.captureLocations) {
     return null;
   }
 
