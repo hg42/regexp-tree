@@ -154,10 +154,24 @@ class NodePath {
    * Returns parent.
    */
   getParent() {
-    if (!this.parent) {
-      return null;
+    return this.parentPath;
+  }
+
+  /**
+   * Returns nth child.
+   */
+  getChild(n = 0) {
+    if (this.node.expressions) {
+      return NodePath.getForNode(
+        this.node.expressions[n],
+        this,
+        "expressions",
+        n
+      );
+    } else if (this.node.expression && n == 0) {
+      return NodePath.getForNode(this.node.expression, this, "expression");
     }
-    return NodePath.getForNode(this.parent);
+    return null;
   }
 
   /**
