@@ -82,11 +82,21 @@ const productions = [[-1,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }
 [3,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }],
 [4,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }],
 [4,3,(_1,_2,_3,_1loc,_2loc,_3loc) => { __loc = yyloc(_1loc, _3loc);
+      // Location for empty disjunction: /|/
+      let loc = null;
+
+      if (_2loc) {
+        loc = {
+          startOffset: _1loc ? _1loc.startOffset : _2loc.startOffset,
+          endOffset: _3loc ? _3loc.endOffset : _2loc.endOffset,
+        };
+      };
+
       __ = Node({
         type: 'Disjunction',
         left: _1,
         right: _3,
-      }, __loc)
+      }, loc)
      }],
 [5,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);
       if (_1.length === 0) {
@@ -220,12 +230,13 @@ const productions = [[-1,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }
 [14,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }],
 [15,3,(_1,_2,_3,_1loc,_2loc,_3loc) => { __loc = yyloc(_1loc, _3loc);
       capturingGroupsCount++;
-      namedGroups[_1] = true;
+      namedGroups[_1] = capturingGroupsCount;
 
       __ = Node({
         type: 'Group',
         capturing: true,
         name: _1,
+        number: capturingGroupsCount,
         expression: _2,
       }, __loc)
      }],
@@ -234,6 +245,7 @@ const productions = [[-1,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }
       __ = Node({
         type: 'Group',
         capturing: true,
+        number: capturingGroupsCount,
         expression: _2,
       }, __loc)
      }],
@@ -257,7 +269,7 @@ const productions = [[-1,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }
         expressions: _2,
       }, __loc)
      }],
-[18,0],
+[18,0,() => { __loc = null; __ = []  }],
 [18,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc);__ = _1 }],
 [19,1,(_1,_1loc) => { __loc = yyloc(_1loc, _1loc); __ = [_1]  }],
 [19,2,(_1,_2,_1loc,_2loc) => { __loc = yyloc(_1loc, _2loc); __ = [_1].concat(_2)  }],
@@ -340,8 +352,8 @@ const lexRules = [[/^\\-/, function() { return 'ESC_CHAR' }, ["class"]],
 [/^\\x[0-9a-fA-F]{2}/, function() { return 'HEX_CODE' }, ],
 [/^\\[tnrdDsSwWvf]/, function() { return 'META_CHAR' }, ],
 [/^\\\//, function() { return 'ESC_CHAR' }, ],
-[/^\\[^*?+\[\(\)]/, function() { return 'ESC_CHAR' }, ],
-[/^\\[*?+\[]/, function() { return 'ESC_CHAR' }, ],
+[/^\\[^*?+\[()]/, function() { return 'ESC_CHAR' }, ],
+[/^\\[*?+\[()]/, function() { return 'ESC_CHAR' }, ],
 [/^\(/, function() { return 'CHAR' }, ["class"]],
 [/^\)/, function() { return 'CHAR' }, ["class"]],
 [/^\(\?=/, function() { return 'POS_LA_ASSERT' }, ],
@@ -363,7 +375,7 @@ const lexRules = [[/^\\-/, function() { return 'ESC_CHAR' }, ["class"]],
 [/^\|/, function() { return 'BAR' }, ],
 [/^\./, function() { return 'ANY' }, ],
 [/^\//, function() { return 'SLASH' }, ],
-[/^[^*?+\[\(\)]/, function() { return 'CHAR' }, ],
+[/^[^*?+\[()]/, function() { return 'CHAR' }, ],
 [/^\[\^/, function() {  this.pushState('class'); return 'NEG_CLASS'  }, ],
 [/^\[/, function() {  this.pushState('class'); return 'L_BRACKET'  }, ]];
 const lexRulesByConditions = {"INITIAL":[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,23,24,25,26,27,28,29,30,34,35,36,37,38,39,40,41,42,43,44],"class":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44]};
@@ -907,7 +919,7 @@ function NamedGroupRefOrChars(text, textLoc) {
     return Node({
       type: 'Backreference',
       kind: 'name',
-      number: capturingGroupsCount,
+      number: namedGroups[groupName],
       reference: groupName,
     }, textLoc);
   }

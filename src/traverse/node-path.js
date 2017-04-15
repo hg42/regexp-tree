@@ -190,22 +190,20 @@ class NodePath {
     // A node is in a collection.
     if (this.index !== null) {
       this.parent[this.property][this.index] = newNode;
-      return NodePath.getForNode(
-                        this.parent[this.property][this.index],
-                        this.parentPath,
-                        this.property,
-                        this.index
-                      );
     }
 
     // A simple node.
-    this.parent[this.property] = newNode;
+    else {
+      this.parent[this.property] = newNode;
+    }
+
+    // Rebuild the node path for the new node.
     return NodePath.getForNode(
-                      this.parent[this.property],
-                      this.parentPath,
-                      this.property,
-                      null
-                    );
+      newNode,
+      this.parentPath,
+      this.property,
+      this.index
+    );
   }
 
   /**
@@ -234,7 +232,11 @@ class NodePath {
         n
       );
     } else if (this.node.expression && n == 0) {
-      return NodePath.getForNode(this.node.expression, this, DEFAULT_SINGLE_PROP);
+      return NodePath.getForNode(
+        this.node.expression,
+        this,
+        DEFAULT_SINGLE_PROP
+      );
     }
     return null;
   }
@@ -325,21 +327,25 @@ class NodePath {
       }
       path.parentPath = parentPath;
     }
+
     if (prop !== null) {
       if(path.property != prop) {
         any = 1;
       }
       path.property = prop;
     }
+
     if (index !== null) {
       if(path.index != index) {
         any = 1;
       }
       path.index = index;
     }
+    
     if (any) {
       NodePath.registry.set(node, path);
     }
+
     return path;
   }
 

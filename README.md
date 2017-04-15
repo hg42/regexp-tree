@@ -1,6 +1,10 @@
-# regexp-tree [![Build Status](https://travis-ci.org/DmitrySoshnikov/regexp-tree.svg?branch=master)](https://travis-ci.org/DmitrySoshnikov/regexp-tree) [![npm version](https://badge.fury.io/js/regexp-tree.svg)](https://badge.fury.io/js/regexp-tree)
+# regexp-tree [![Build Status](https://travis-ci.org/DmitrySoshnikov/regexp-tree.svg?branch=master)](https://travis-ci.org/DmitrySoshnikov/regexp-tree) [![npm version](https://badge.fury.io/js/regexp-tree.svg)](https://badge.fury.io/js/regexp-tree) [![npm downloads](https://img.shields.io/npm/dt/regexp-tree.svg)](https://www.npmjs.com/package/regexp-tree)
 
-Regular expressions processor (parser/traversal/generator) in JavaScript
+Regular expressions processor in JavaScript
+
+TL;DR: **RegExp Tree** is a _regular expressions processor_, which includes _parser_, _traversal_, _transformer_, and _optimizer_ APIs.
+
+You can get an overview of the tool in [this article](https://medium.com/@DmitrySoshnikov/regexp-tree-a-regular-expressions-parser-with-a-simple-ast-format-bcd4d5580df6).
 
 ### Table of Contents
 
@@ -12,7 +16,11 @@ Regular expressions processor (parser/traversal/generator) in JavaScript
 - [Using traversal API](#using-traversal-api)
 - [Using transform API](#using-transform-api)
 - [Using generator API](#using-generator-api)
+- [Using optimizer API](#using-optimizer-api)
+  - [Optimizer ESLint plugin](#optimizer-eslint-plugin)
+- [Using compat-transpiler API](#using-compat-transpiler-api)
 - [Creating RegExp objects](#creating-regexp-objects)
+- [Executing regexes](#executing-regexes)
 - [AST nodes specification](#ast-nodes-specification)
 
 ### Installation
@@ -182,7 +190,17 @@ const regexpTree = require('regexp-tree');
 const parsed = regexpTree
   .parser
   .setOptions({captureLocations: true})
-  .parse('/a|b/');
+  .parse(/a|b/);
+```
+
+The `setOptions` method sets global options, which are preserved between calls. It is also possible to provide options per a single `parse` call, which might be more preferred:
+
+```js
+const regexpTree = require('regexp-tree');
+
+const parsed = regexpTree.parse(/a|b/, {
+  captureLocations: true,
+});
 ```
 
 ### Using traversal API
@@ -275,6 +293,73 @@ const re = regexpTree.generate({
 console.log(re); // '/a/i'
 ```
 
+### Using optimizer API
+
+[Optimizer](https://github.com/DmitrySoshnikov/regexp-tree/tree/master/src/optimizer) transforms your regexp into an _optimized_ version, replacing some sub-expressions with their idiomatic patterns. This might be good for different kinds of minifiers, as well as for regexp machines.
+
+Example:
+
+```js
+const regexpTree = require('regexp-tree');
+
+const originalRe = /[a-zA-Z_0-9][A-Z_\da-z]*\e{1,}/;
+
+const optimizedRe = regexpTree
+  .optimize(originalRe)
+  .toRegExp();
+
+console.log(optimizedRe); // /\w+e+/
+```
+
+#### Optimizer ESLint plugin
+
+The [optimizer](https://github.com/DmitrySoshnikov/regexp-tree/tree/master/src/optimizer) module is also available as an _ESLint plugin_, which can be installed at: [eslint-plugin-optimize-regex](https://www.npmjs.com/package/eslint-plugin-optimize-regex).
+
+### Using compat-transpiler API
+
+The [compat-transpiler](https://github.com/DmitrySoshnikov/regexp-tree/tree/master/src/compat-transpiler) module translates your regexp in new format or in new syntax, into an equivalent regexp in a legacy representation, so it can be used in engines which don't yet implement the new syntax.
+
+Example, "dotAll" `s` flag:
+
+
+```js
+/./s
+```
+
+Is translated into:
+
+```js
+/[\0-\uFFFF]/
+```
+
+Or [named capturing groups](#named-capturing-group):
+
+```js
+/(?<value>a)\k<value>\1/
+```
+
+Becomes:
+
+```js
+/(a)\1\1/
+```
+
+To use the API from Node:
+
+```js
+const regexpTree = require('regexp-tree');
+
+// Using new syntax.
+const originalRe = '/(?<all>.)\\k<all>/s';
+
+// For legacy engines.
+const compatTranspiledRe = regexpTree
+  .compatTranspile(originalRe)
+  .toRegExp();
+
+console.log(compatTranspiledRe); // /([\0-\uFFFF])\1/
+```
+
 ### Creating RegExp objects
 
 To create an actual `RegExp` JavaScript object, we can use `regexpTree.toRegExp` method:
@@ -288,6 +373,21 @@ console.log(
   re.test('a'), // true
   re.test('Z'), // true
 );
+```
+
+### Executing regexes
+
+It is also possible to execute regular expressions using `exec` API method, which has support for new syntax, and features, such as [named capturing group](#named-capturing-group), etc:
+
+```js
+const regexpTree = require('regexp-tree');
+
+const re = '/(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})/';
+const string = '2017-04-14';
+
+const result = regexpTree.exec(re, string);
+
+console.log(result.groups); // {year: '2017', month: '04', day: '14'}
 ```
 
 ### AST nodes specification
@@ -718,6 +818,7 @@ A node:
     {
       type: 'Group',
       capturing: true,
+      number: 1,
       expression: {
         type: 'Alternative',
         expressions: [
@@ -742,6 +843,8 @@ A node:
   ]
 }
 ```
+
+As we can see, it also tracks the number of the group.
 
 Another example:
 
@@ -775,6 +878,7 @@ We have the following node (the `name` property with value `foo` is added):
   type: 'Group',
   capturing: true,
   name: 'foo',
+  number: 1,
   expression: {
     type: 'Char',
     value: 'x',
@@ -846,6 +950,7 @@ A node:
     {
       type: 'Group',
       capturing: true,
+      number: 1,
       expression: {
         type: 'Alternative',
         expressions: [
@@ -890,6 +995,7 @@ A node:
       type: 'Group',
       capturing: true,
       name: 'foo',
+      number: 1,
       expression: {
         type: 'Char',
         value: 'w',

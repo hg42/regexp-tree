@@ -17,6 +17,9 @@ module.exports = {
 
     // [a-zA-Z_0-9] -> \w
     rewriteWordRanges(path);
+
+    // [ \t\r\n\f] -> \s
+    rewriteWhitespaceRanges(path);
   }
 };
 
@@ -51,20 +54,20 @@ function rewriteWordRanges(path) {
   const {node} = path;
 
   let numberPath = null;
-  let lowerCacePath = null;
+  let lowerCasePath = null;
   let upperCasePath = null;
   let underscorePath = null;
 
   node.expressions.forEach((expression, i) => {
 
     // \d
-    if (isMetaNumber(expression)) {
+    if (isMetaChar(expression, '\\d')) {
       numberPath = path.getChild(i);
     }
 
     // a-z
     else if (isLowerCaseRange(expression)) {
-      lowerCacePath = path.getChild(i);
+      lowerCasePath = path.getChild(i);
     }
 
     // A-Z
@@ -81,7 +84,7 @@ function rewriteWordRanges(path) {
   // If we found the whole pattern, replace it.
   if (
     numberPath &&
-    lowerCacePath &&
+    lowerCasePath &&
     upperCasePath &&
     underscorePath
   ) {
@@ -99,9 +102,73 @@ function rewriteWordRanges(path) {
     });
 
     // Other paths are removed.
-    lowerCacePath.remove();
+    lowerCasePath.remove();
     upperCasePath.remove();
     underscorePath.remove();
+  }
+}
+
+/**
+ * Rewrites whitespace ranges: [ \t\r\n\f] -> \s.
+ */
+function rewriteWhitespaceRanges(path) {
+  const {node} = path;
+
+  let spacePath = null;
+  let tPath = null;
+  let nPath = null;
+  let rPath = null;
+  let fPath = null;
+
+  node.expressions.forEach((expression, i) => {
+
+    // Space
+    if (isChar(expression, ' ')) {
+      spacePath = path.getChild(i);
+    }
+
+    // \t
+    else if (isMetaChar(expression, '\\t')) {
+      tPath = path.getChild(i);
+    }
+
+    // \n
+    else if (isMetaChar(expression, '\\n')) {
+      nPath = path.getChild(i);
+    }
+
+    // \r
+    else if (isMetaChar(expression, '\\r')) {
+      rPath = path.getChild(i);
+    }
+
+    // \f
+    else if (isMetaChar(expression, '\\f')) {
+      fPath = path.getChild(i);
+    }
+
+  });
+
+  // If we found the whole pattern, replace it.
+  // Make \f optional.
+  if (
+    spacePath &&
+    tPath &&
+    nPath &&
+    rPath
+  ) {
+
+    // Put \s in place of \n.
+    nPath.node.value = '\\s';
+
+    // Other paths are removed.
+    spacePath.remove();
+    tPath.remove();
+    rPath.remove();
+
+    if (fPath) {
+      fPath.remove();
+    }
   }
 }
 
@@ -113,12 +180,16 @@ function isFullNumberRange(node) {
   );
 }
 
-function isMetaNumber(node) {
+function isChar(node, value, kind = 'simple') {
   return (
     node.type === 'Char' &&
-    node.value === '\\d' &&
-    node.kind === 'meta'
+    node.value === value &&
+    node.kind === kind
   );
+}
+
+function isMetaChar(node, value) {
+  return isChar(node, value, 'meta');
 }
 
 function isLowerCaseRange(node) {

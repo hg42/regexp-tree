@@ -23,6 +23,30 @@ describe('basic', () => {
     });
   });
 
+  it('parens char', () => {
+    expect(re(/\(\)/)).toEqual({
+      type: 'RegExp',
+      body: {
+        type: 'Alternative',
+        expressions: [
+          {
+            type: 'Char',
+            value: '(',
+            kind: 'simple',
+            escaped: true,
+          },
+          {
+            type: 'Char',
+            value: ')',
+            kind: 'simple',
+            escaped: true,
+          },
+        ]
+      },
+      flags: '',
+    });
+  });
+
   it('disjunction', () => {
     expect(re(/a|b/)).toEqual({
       type: 'RegExp',
@@ -95,12 +119,77 @@ describe('basic', () => {
     });
   });
 
+  it('empty class', () => {
+    expect(re(/[]/)).toEqual({
+      type: 'RegExp',
+      body: {
+        type: 'CharacterClass',
+        expressions: [],
+      },
+      flags: '',
+    });
+
+    expect(re(/[^]/)).toEqual({
+      type: 'RegExp',
+      body: {
+        type: 'CharacterClass',
+        negative: true,
+        expressions: [],
+      },
+      flags: '',
+    });
+  });
+
+  it('capturing group numbers', () => {
+    expect(re('/(?:)(a)(?:)(?<name>b)/')).toEqual({
+      type: 'RegExp',
+      body: {
+        type: 'Alternative',
+        expressions: [
+          {
+            type: 'Group',
+            capturing: false,
+            expression: null
+          },
+          {
+            type: 'Group',
+            capturing: true,
+            number: 1,
+            expression: {
+              type: 'Char',
+              value: 'a',
+              kind: 'simple'
+            }
+          },
+          {
+            type: 'Group',
+            capturing: false,
+            expression: null
+          },
+          {
+            type: 'Group',
+            capturing: true,
+            name: 'name',
+            number: 2,
+            expression: {
+              type: 'Char',
+              value: 'b',
+              kind: 'simple'
+            }
+          }
+        ]
+      },
+      flags: ''
+    });
+  });
+
   it('empty group', () => {
     expect(re(/()/)).toEqual({
       type: 'RegExp',
       body: {
         type: 'Group',
         capturing: true,
+        number: 1,
         expression: null,
       },
       flags: '',
@@ -111,8 +200,9 @@ describe('basic', () => {
       type: 'RegExp',
       body: {
         type: 'Group',
-        name: 'foo',
         capturing: true,
+        name: 'foo',
+        number: 1,
         expression: null,
       },
       flags: '',
@@ -135,6 +225,7 @@ describe('basic', () => {
       body: {
         type: 'Group',
         capturing: true,
+        number: 1,
         expression: {
           type: 'Char',
           value: 'a',
@@ -151,6 +242,7 @@ describe('basic', () => {
         type: 'Group',
         name: 'foo',
         capturing: true,
+        number: 1,
         expression: {
           type: 'Char',
           value: 'a',
@@ -296,6 +388,7 @@ describe('basic', () => {
           {
             type: 'Group',
             capturing: true,
+            number: 1,
             expression: {
               type: 'Char',
               value: 'a',
@@ -330,6 +423,7 @@ describe('basic', () => {
           {
             type: 'Group',
             capturing: true,
+            number: 1,
             name: 'x',
             expression: {
               type: 'Char',

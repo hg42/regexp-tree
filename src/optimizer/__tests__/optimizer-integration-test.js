@@ -25,6 +25,22 @@ describe('optimizer-integration-test', () => {
       .toBe(optimized.toString());
   });
 
+  it('preserve escape', () => {
+    const original = /^[\^\*\$\(\)]\^\*\$\(\)$/;
+    const optimized = /^[^*$()]\^\*\$\(\)$/;
+
+    expect(optimizer.optimize(original).toString())
+      .toBe(optimized.toString());
+  });
+
+  it('whitespace', () => {
+    const original = /[ \n\r\t\f]+/;
+    const optimized = /\s+/;
+
+    expect(optimizer.optimize(original).toString())
+      .toBe(optimized.toString());
+  });
+
   it('quantifier {1,}', () => {
     const original = /[a-z0-9A-Za-z_]{1,}/;
     const optimized = /\w+/;

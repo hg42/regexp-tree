@@ -16,7 +16,7 @@
 
 %lex
 
-CHAR                    [^*?+\[\(\)]
+CHAR                    [^*?+\[()]
 ESC                     \\
 U                       [0-9a-fA-F]
 
@@ -71,7 +71,7 @@ GROUP_NAME              ([\w$]|\\'u'[0-9a-fA-F]{4}|\\'u{'[0-9a-fA-F]{1,}'}')+
 {ESC}'/'                 return 'ESC_CHAR'
 
 {ESC}{CHAR}              return 'ESC_CHAR'
-{ESC}[*?+\[]             return 'ESC_CHAR'
+{ESC}[*?+\[()]           return 'ESC_CHAR'
 
 <class>'('               return 'CHAR'
 <class>')'               return 'CHAR'
@@ -239,7 +239,7 @@ function NamedGroupRefOrChars(text, textLoc) {
     return Node({
       type: 'Backreference',
       kind: 'name',
-      number: capturingGroupsCount,
+      number: namedGroups[groupName],
       reference: groupName,
     }, textLoc);
   }
@@ -370,11 +370,21 @@ Disjunction
 
   | Disjunction BAR Alternative
     {
+      // Location for empty disjunction: /|/
+      let loc = null;
+
+      if (@2) {
+        loc = {
+          startOffset: @1 ? @1.startOffset : @2.startOffset,
+          endOffset: @3 ? @3.endOffset : @2.endOffset,
+        };
+      };
+
       $$ = Node({
         type: 'Disjunction',
         left: $1,
         right: $3,
-      }, @$)
+      }, loc)
     }
   ;
 
@@ -589,12 +599,13 @@ CapturingGroup
   : NAMED_CAPTURE_GROUP Disjunction R_PAREN
     {
       capturingGroupsCount++;
-      namedGroups[$1] = true;
+      namedGroups[$1] = capturingGroupsCount;
 
       $$ = Node({
         type: 'Group',
         capturing: true,
         name: $1,
+        number: capturingGroupsCount,
         expression: $2,
       }, @$)
     }
@@ -605,6 +616,7 @@ CapturingGroup
       $$ = Node({
         type: 'Group',
         capturing: true,
+        number: capturingGroupsCount,
         expression: $2,
       }, @$)
     }
@@ -641,6 +653,8 @@ CharacterClass
 
 ClassRanges
   : /* empty */
+    { $$ = [] }
+
   | NonemptyClassRanges
   ;
 
