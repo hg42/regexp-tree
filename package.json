@@ -9,6 +9,7 @@
   "scripts": {
     "build": "./scripts/build",
     "test": "jest",
+    "test-debug": "node-debug --harmony ./node_modules/jest-cli/bin/jest.js --runInBand",
     "prepublish": "npm test && npm run build"
   },
   "bin": {
