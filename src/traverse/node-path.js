@@ -180,20 +180,32 @@ class NodePath {
    * Replaces a node with the passed one.
    */
   replace(newNode) {
+
     this.node = newNode;
 
     if (!this.parent) {
-      return;
+      return null;
     }
 
     // A node is in a collection.
     if (this.index !== null) {
       this.parent[this.property][this.index] = newNode;
-      return;
+      return NodePath.getForNode(
+                        this.parent[this.property][this.index],
+                        this.parentPath,
+                        this.property,
+                        this.index
+                      );
     }
 
     // A simple node.
     this.parent[this.property] = newNode;
+    return NodePath.getForNode(
+                      this.parent[this.property],
+                      this.parentPath,
+                      this.property,
+                      null
+                    );
   }
 
   /**
@@ -305,15 +317,28 @@ class NodePath {
     }
 
     let path = NodePath.registry.get(node);
+    let any = 0;
 
     if (parentPath !== null) {
+      if(path.parentPath != parentPath) {
+        any = 1;
+      }
       path.parentPath = parentPath;
     }
     if (prop !== null) {
+      if(path.property != prop) {
+        any = 1;
+      }
       path.property = prop;
     }
     if (index !== null) {
+      if(path.index != index) {
+        any = 1;
+      }
       path.index = index;
+    }
+    if (any) {
+      NodePath.registry.set(node, path);
     }
     return path;
   }

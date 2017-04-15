@@ -317,6 +317,35 @@ describe('NodePath', () => {
     });
   });
 
+  it('replaces with already used node with another parent', () => {
+    const ast = parser.parse('/a(b)/');
+
+    const bodyPath = new NodePath(ast.body);
+    const aCharPath = bodyPath.getChild(0);
+    const groupPath = bodyPath.getChild(1);
+    const bCharPath = groupPath.getChild();
+    const aNode = aCharPath.node;
+    const bNode = bCharPath.node;
+
+    groupPath.setChild(aNode);
+    bodyPath.setChild(bNode, 0);
+    //console.log(JSON.stringify(bodyPath.node, null, "    "));
+    console.log(JSON.stringify(bodyPath.getChild(0), null, "    "));
+    console.log(JSON.stringify(bodyPath.getChild(1).getChild(), null, "    "));
+
+    // aCharPath.replace(bNode);
+    // expect(aCharPath.parentPath).toEqual(bodyPath);
+    // const bCharPath2 = NodePath.getForNode(bNode);
+    // expect(bCharPath2).toEqual(aCharPath);
+
+    // bCharPath.replace(aNode);
+    // expect(bCharPath.parentPath).toEqual(groupPath);
+    // const aCharPath2 = NodePath.getForNode(aNode);
+    // expect(aCharPath2).toEqual(bCharPath);
+
+    expect(generator.generate(ast)).toEqual('/b(a)/');
+  });
+
   it('sets a child node to two new nested nodes', () => {
     const ast = parser.parse('/ab/');
 
@@ -368,7 +397,7 @@ describe('NodePath', () => {
     expect(dPath.parentPath).toBe(alterPath);
     expect(alterPath.parentPath).toBe(groupPath);
 
-    expect(generator.generate(ast)).toBe('/a(cd)/');
+    expect(generator.generate(ast)).toEqual('/a(cd)/');
   });
 
   it('getPreviousSibling', () => {
