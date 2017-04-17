@@ -1,4 +1,6 @@
-# regexp-tree [![Build Status](https://travis-ci.org/DmitrySoshnikov/regexp-tree.svg?branch=master)](https://travis-ci.org/DmitrySoshnikov/regexp-tree) [![npm version](https://badge.fury.io/js/regexp-tree.svg)](https://badge.fury.io/js/regexp-tree) [![npm downloads](https://img.shields.io/npm/dt/regexp-tree.svg)](https://www.npmjs.com/package/regexp-tree)
+# regexp-tree
+
+[![Build Status](https://travis-ci.org/DmitrySoshnikov/regexp-tree.svg?branch=master)](https://travis-ci.org/DmitrySoshnikov/regexp-tree) [![npm version](https://badge.fury.io/js/regexp-tree.svg)](https://badge.fury.io/js/regexp-tree) [![npm downloads](https://img.shields.io/npm/dt/regexp-tree.svg)](https://www.npmjs.com/package/regexp-tree)
 
 Regular expressions processor in JavaScript
 
@@ -19,8 +21,11 @@ You can get an overview of the tool in [this article](https://medium.com/@Dmitry
 - [Using optimizer API](#using-optimizer-api)
   - [Optimizer ESLint plugin](#optimizer-eslint-plugin)
 - [Using compat-transpiler API](#using-compat-transpiler-api)
+  - [Compat-transpiler Babel plugin](#compat-transpiler-babel-plugin)
 - [Creating RegExp objects](#creating-regexp-objects)
 - [Executing regexes](#executing-regexes)
+- [RegExp extensions](#regexp-extensions)
+  - [RegExp extensions Babel plugin](#regexp-extensions-babel-plugin)
 - [AST nodes specification](#ast-nodes-specification)
 
 ### Installation
@@ -38,7 +43,7 @@ You can also [try it online](https://astexplorer.net/#/gist/4ea2b52f0e546af6fb14
 ### Development
 
 1. Fork https://github.com/DmitrySoshnikov/regexp-tree repo
-2. If there is an actual issue from the [issues](https://github.com/DmitrySoshnikov/regexp-tree/issues) list you'd like to work on, feel free to assing it yourself, or comment on it to avoid collisions (open a new issue if needed)
+2. If there is an actual issue from the [issues](https://github.com/DmitrySoshnikov/regexp-tree/issues) list you'd like to work on, feel free to assign it yourself, or comment on it to avoid collisions (open a new issue if needed)
 3. Make your changes
 4. Make sure `npm test` still passes (add new tests if needed)
 5. Submit a PR
@@ -72,6 +77,8 @@ Usage: regexp-tree [options]
 Options:
    -e, --expression   A regular expression to be parsed
    -l, --loc          Whether to capture AST node locations
+   -o, --optimize     Applies optimizer on the passed expression
+   -c, --compat       Applies compat-transpiler on the passed expression
 ```
 
 To parse a regular expression, pass `-e` option:
@@ -311,6 +318,18 @@ const optimizedRe = regexpTree
 console.log(optimizedRe); // /\w+e+/
 ```
 
+From CLI the optimizer is available via `--optimize` (`-o`) option:
+
+```
+regexp-tree -e '/[a-zA-Z_0-9][A-Z_\da-z]*\e{1,}/' -o
+```
+
+Result:
+
+```
+Optimized: /\w+e+/
+```
+
 #### Optimizer ESLint plugin
 
 The [optimizer](https://github.com/DmitrySoshnikov/regexp-tree/tree/master/src/optimizer) module is also available as an _ESLint plugin_, which can be installed at: [eslint-plugin-optimize-regex](https://www.npmjs.com/package/eslint-plugin-optimize-regex).
@@ -360,6 +379,24 @@ const compatTranspiledRe = regexpTree
 console.log(compatTranspiledRe); // /([\0-\uFFFF])\1/
 ```
 
+From CLI the compat-transpiler is available via `--compat` (`-c`) option:
+
+```
+regexp-tree -e '/(?<all>.)\k<all>/s' -c
+```
+
+Result:
+
+```
+Compat: /([\0-\uFFFF])\1/
+```
+
+#### Compat-transpiler Babel plugin
+
+The [compat-transpiler](https://github.com/DmitrySoshnikov/regexp-tree/tree/master/src/compat-transpiler) module is also available as a _Babel plugin_, which can be installed at: [babel-plugin-transform-modern-regexp](https://www.npmjs.com/package/babel-plugin-transform-modern-regexp).
+
+Note, the plugin also includes [extended regexp](#regexp-extensions) features.
+
 ### Creating RegExp objects
 
 To create an actual `RegExp` JavaScript object, we can use `regexpTree.toRegExp` method:
@@ -389,6 +426,39 @@ const result = regexpTree.exec(re, string);
 
 console.log(result.groups); // {year: '2017', month: '04', day: '14'}
 ```
+
+### RegExp extensions
+
+Besides future proposals, like [named capturing group](#named-capturing-group), and other which are being currently standardized, _regexp-tree_ also supports _non-standard_ features.
+
+> NOTE: _"non-standard"_ means specifically ECMAScript standard, since in other regexp egnines, e.g. PCRE, Python, etc. these features are standard.
+
+One of such featurs is `x` flag, which enables _extended_ mode of regular expressions. In this mode most of whitespaces are ignored, and expressions can use #-comments.
+
+Example:
+
+```regex
+/
+  # A regular expression for date.
+
+  (?<year>\d{4})-    # year part of a date
+  (?<month>\d{2})-   # month part of a date
+  (?<day>\d{2})      # day part of a date
+
+/x
+```
+
+This is normally parsed by the _regexp-tree_ parser, and [compat-transpiler](#using-compat-transpiler-api) has full support for it; it's translated into:
+
+```regex
+/(\d{4})-(\d{2})-(\d{2})/
+```
+
+#### RegExp extensions Babel plugin
+
+The regexp extensions are also available as a _Babel plugin_, which can be installed at: [babel-plugin-transform-modern-regexp](https://www.npmjs.com/package/babel-plugin-transform-modern-regexp).
+
+Note, the plugin also includes [compat-transpiler](#using-compat-transpiler-api) features.
 
 ### AST nodes specification
 

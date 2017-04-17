@@ -19,23 +19,58 @@ const options = require('nomnom')
       help: 'Whether to capture AST node locations',
       flag: true,
     },
+    optimize: {
+      abbr: 'o',
+      help: 'Apply optimizer on the passed expression',
+      flag: true,
+    },
+    compat: {
+      abbr: 'c',
+      help: 'Apply compat-transpiler on the passed expression',
+      flag: true,
+    },
   })
   .parse();
 
 function main() {
   const {
+    compat,
     expression,
     loc,
+    optimize,
   } = options;
 
-  if (loc) {
-    regexpTree.parser.setOptions({
-      captureLocations: true,
-    });
+  // ------------------------------------------------------
+  // Optimizer.
+
+  if (optimize) {
+    const optimized = regexpTree.optimize(expression);
+    console.info('\n', bold('Optimized:'), optimized.toString(), '\n');
+    return;
   }
 
-  const parsed = regexpTree.parse(expression);
+  // ------------------------------------------------------
+  // Compat-transpiler.
+  if (compat) {
+    const compatTranspiled = regexpTree.compatTranspile(expression);
+    console.info('\n', bold('Compat:'), compatTranspiled.toString(), '\n');
+    return;
+  }
+
+  // ------------------------------------------------------
+  // Parsing.
+
+  const parseOptions = {
+    captureLocations: loc,
+  };
+
+  const parsed = regexpTree.parse(expression, parseOptions);
+
   console.info(JSON.stringify(parsed, null, 2));
+}
+
+function bold(text) {
+  return `\x1b[1m${text}\x1b[0m`;
 }
 
 if (require.main === module) {
